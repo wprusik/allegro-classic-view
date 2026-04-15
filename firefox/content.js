@@ -63,7 +63,7 @@ function getItemData() {
     try {
         parsed = JSON.parse(rawJson);
     } catch (e) {
-        console.error("Nie uda\\u0142o si\\u0119 sparsowa\\u0107 JSON-a", e);
+        console.error("Nie udało się sparsować JSON-a", e);
         return null;
     }
 
@@ -109,7 +109,7 @@ function getItemData() {
 
         if (parsed.productPopularityLabel?.label) {
             items.push({
-                name: "Popularno\\u015b\\u0107",
+                name: "Popularność",
                 value: parsed.productPopularityLabel.label,
                 description: parsed.productPopularityLabel.tooltipText || "",
                 url: ""
