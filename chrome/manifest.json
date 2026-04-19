@@ -28,7 +28,8 @@
   "content_scripts": [
     {
       "matches": [
-        "https://allegro.pl/produkt/*"
+        "https://allegro.pl/produkt/*",
+        "https://allegro.pl/oferta/*"
       ],
       "js": [
         "content.js"

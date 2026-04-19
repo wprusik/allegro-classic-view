@@ -5,6 +5,23 @@ This repository contains two extension variants:
 - `firefox/` - Firefox version
 - `chrome/` - Chrome version
 
+## Development - Firefox (temporary loading)
+
+To load the development version of the extension in Firefox:
+
+1. Open `about:debugging#/runtime/this-firefox`.
+2. Click **Tymczasowo wczytaj dodatek**.
+3. Select the extension manifest file from the `firefox/` folder (`manifest.json`).
+
+## Development - Chrome (unpacked extension)
+
+To load the development version of the extension in Chrome:
+
+1. Open `chrome://extensions`.
+2. Enable **Developer mode**.
+3. Click **Load unpacked**.
+4. Select the `chrome/` folder.
+
 ## Packaging - Firefox
 
 1. Go to the project directory.
