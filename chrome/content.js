@@ -204,7 +204,7 @@ function getItemData() {
         const rowBg = rowIndex % 2 === 0 ? "#F6F7F8" : "#fff";
         appendParamCells(tr, items[i], { rowBg });
         const tdSpacer = document.createElement("td");
-        tdSpacer.style.width = "2%";
+        tdSpacer.style.width = "1%";
         tdSpacer.style.background = "#fff";
         tdSpacer.style.padding = "0";
         tr.appendChild(tdSpacer);
@@ -220,7 +220,8 @@ function buildHeader(text) {
     const header = document.createElement("h2");
     header.textContent = text;
     header.style.fontFamily = "Calibri, Arial, sans-serif";
-    header.style.fontSize = "1.9em";
+    header.style.fontSize = "1.5em";
+    header.style.fontWeight = "500";
     return header;
 }
 
@@ -290,6 +291,7 @@ async function restoreOldLook() {
 
     restoreOldLook();
 })();
+
 
 
 

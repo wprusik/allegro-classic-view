@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="pl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>allegro-classic-view</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 8px;
+            width: 180px;
+            font-family: "Segoe UI", Arial, sans-serif;
+            background: #fff;
+            color: #1f1f1f;
+        }
+
+        .popup {
+            display: grid;
+            gap: 5px;
+            padding: 0;
+        }
+
+        button, a {
+            display: block;
+            width: 100%;
+            border: 1px solid #ff8c00;
+            border-radius: 7px;
+            padding: 6px 8px;
+            font-size: 12px;
+            font-weight: 600;
+            text-align: center;
+            text-decoration: none;
+            cursor: pointer;
+            box-sizing: border-box;
+            line-height: 1.25;
+            transition: background 0.15s ease, border-color 0.15s ease;
+        }
+
+        button {
+            background: #ffb347;
+            color: #5a2a00;
+        }
+
+        button:hover, a:hover {
+            border-color: #ff7a00;
+            background: #ffa21a;
+        }
+
+        button.toggle-on {
+            background: #dcfce7;
+            border-color: #22c55e;
+            color: #166534;
+        }
+
+        button.toggle-on:hover {
+            background: #bbf7d0;
+            border-color: #16a34a;
+        }
+
+        button.toggle-off {
+            background: #fee2e2;
+            border-color: #ef4444;
+            color: #991b1b;
+        }
+
+        button.toggle-off:hover {
+            background: #fecaca;
+            border-color: #dc2626;
+        }
+
+        .support {
+            background: #ffd28a;
+            color: #5a2a00;
+        }
+    </style>
+</head>
+<body>
+<div class="popup">
+    <button id="toggle-btn" type="button">⚙ Wczytywanie...</button>
+    <a class="support" href="https://buycoffee.to/" target="_blank" rel="noopener noreferrer">☕ Wesprzyj</a>
+</div>
+<script src="popup.js"></script>
+</body>
+</html>

@@ -16,7 +16,7 @@ function isTargetUrl(url) {
     if (!url) return false;
     try {
         const parsed = new URL(url);
-        return parsed.hostname === "allegro.pl" && parsed.pathname.startsWith("/produkt/");
+        return parsed.hostname === "allegro.pl" && (parsed.pathname.startsWith("/produkt/") || parsed.pathname.startsWith("/oferta/"));
     } catch (_) {
         return false;
     }
@@ -78,19 +78,26 @@ async function refreshIconForTab(tabId) {
     await setActionTitle(enabled, tabId);
 }
 
-async function toggleForTab(tab) {
-    const current = await getEnabledState();
-    const next = !current;
-    await setEnabledState(next);
-    await setActionIcon(next);
-    await setActionTitle(next);
+function getActiveTab() {
+    if (typeof browser !== "undefined" && browser?.tabs) {
+        return browser.tabs.query({ active: true, currentWindow: true }).then((tabs) => tabs?.[0] || null);
+    }
 
-    if (tab?.id && isTargetUrl(tab.url)) {
-        const tabsApi = (typeof browser !== "undefined" && browser?.tabs) ? browser.tabs : chrome.tabs;
+    return new Promise((resolve) => {
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => resolve(tabs?.[0] || null));
+    });
+}
+
+async function applyEnabledState(enabled) {
+    await setEnabledState(enabled);
+    await setActionIcon(enabled);
+    await setActionTitle(enabled);
+    const activeTab = await getActiveTab();
+    if (activeTab?.id && isTargetUrl(activeTab.url)) {
         if (typeof browser !== "undefined" && browser?.tabs) {
-            await tabsApi.reload(tab.id);
+            await browser.tabs.reload(activeTab.id);
         } else {
-            tabsApi.reload(tab.id);
+            chrome.tabs.reload(activeTab.id);
         }
     }
 }
@@ -111,8 +118,22 @@ runtimeApi.onStartup?.addListener(async () => {
     await setActionTitle(enabled);
 });
 
-actionApi.onClicked.addListener((tab) => {
-    toggleForTab(tab);
+runtimeApi.onMessage?.addListener((message, _sender, sendResponse) => {
+    if (!message?.type) return;
+
+    if (message.type === "GET_ENABLED") {
+        getEnabledState()
+            .then((enabled) => sendResponse({ enabled }))
+            .catch(() => sendResponse({ enabled: true }));
+        return true;
+    }
+
+    if (message.type === "SET_ENABLED") {
+        applyEnabledState(Boolean(message.enabled))
+            .then(() => sendResponse({ ok: true }))
+            .catch((error) => sendResponse({ ok: false, error: String(error) }));
+        return true;
+    }
 });
 
 tabsApi.onActivated?.addListener((activeInfo) => {
