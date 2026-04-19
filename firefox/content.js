@@ -142,28 +142,38 @@ function getItemData() {
     const table = document.createElement("table");
     table.style.width = "100%";
     table.style.borderCollapse = "collapse";
-    table.style.fontSize = "18px";
-    table.style.lineHeight = "1.4";
+    table.style.fontSize = "15px";
+    table.style.lineHeight = "1.45";
     table.style.margin = "12px 0";
     table.style.background = "#fff";
 
-    items.forEach((item) => {
-        const tr = document.createElement("tr");
-
+    const appendParamCells = (tr, item, options = {}) => {
+        const { rowBg = "#fff" } = options;
         const tdName = document.createElement("td");
-        tdName.textContent = item.name;
-        tdName.style.border = "1px solid #ddd";
+        tdName.textContent = item?.name || "";
+        tdName.style.border = "none";
         tdName.style.padding = "8px 10px";
         tdName.style.verticalAlign = "top";
         tdName.style.fontWeight = "500";
-        tdName.style.width = "35%";
-        tdName.style.background = "#f7f7f7";
+        tdName.style.color = "#757575";
+        tdName.style.width = "20%";
+        tdName.style.background = rowBg;
+
 
         const tdValue = document.createElement("td");
-        tdValue.style.border = "1px solid #ddd";
+        tdValue.style.border = "none";
         tdValue.style.padding = "8px 10px";
         tdValue.style.verticalAlign = "top";
-        tdValue.style.fontWeight = "600";
+        tdValue.style.fontWeight = "400";
+        tdValue.style.width = "30%";
+        tdValue.style.background = rowBg;
+
+
+        if (!item) {
+            tr.appendChild(tdName);
+            tr.appendChild(tdValue);
+            return;
+        }
 
         if (item.url) {
             const a = document.createElement("a");
@@ -186,10 +196,23 @@ function getItemData() {
 
         tr.appendChild(tdName);
         tr.appendChild(tdValue);
-        table.appendChild(tr);
-    });
+    };
 
-    table.style.fontFamily = "Calibri Light, Arial, sans-serif";
+    for (let i = 0; i < items.length; i += 2) {
+        const tr = document.createElement("tr");
+        const rowIndex = Math.floor(i / 2);
+        const rowBg = rowIndex % 2 === 0 ? "#F6F7F8" : "#fff";
+        appendParamCells(tr, items[i], { rowBg });
+        const tdSpacer = document.createElement("td");
+        tdSpacer.style.width = "2%";
+        tdSpacer.style.background = "#fff";
+        tdSpacer.style.padding = "0";
+        tr.appendChild(tdSpacer);
+        appendParamCells(tr, items[i + 1], { rowBg });
+        table.appendChild(tr);
+    }
+
+    table.style.fontFamily = "\"Segoe UI\", \"Helvetica Neue\", Arial, sans-serif";
     return table;
 }
 
@@ -231,11 +254,20 @@ function removeContainersByTitles(titles) {
 
 function removeCommercialContainers() {
     findElementByTitle("Opinie o produkcie")?.parentElement?.parentElement?.parentElement?.parentElement?.parentElement?.parentElement?.parentElement?.remove();
-    removeContainersByTitles(['Opinie o produkcie', 'Inni klienci oglądali również', 'Zbuduj swój zestaw', 'Propozycje z gwarancją najniższej ceny', 'Co powiesz na...?', 'Zamów zestaw w jednej przesyłce', 'Zamów w jednej przesyłce', 'Nowości', 'Nasze serie produktów', 'Okazje cenowe dla Ciebie'])
+    removeContainersByTitles(['Opinie o produkcie', 'Inni klienci oglądali również', 'Zbuduj swój zestaw', 'Propozycje z gwarancją najniższej ceny', 'Co powiesz na...?', 'Zamów zestaw w jednej przesyłce', 'Zamów w jednej przesyłce', 'Nowości', 'Nasze serie produktów', 'Okazje cenowe dla Ciebie']);
     document.querySelectorAll('div[data-box-name="template-with-offers"]').forEach((el) => el.remove());
-    document.querySelector('div[data-box-name="Container carousel_reco_same_seller"]').remove();
-    document.querySelector('div[data-box-name="Product Series Title"]')?.parentElement?.remove()
-    document.querySelectorAll('img[alt="Reklama banerowa"]').forEach(el => el?.parentElement?.parentElement?.parentElement?.remove())
+    document.querySelector('div[data-box-name="Container carousel_reco_same_seller"]')?.remove();
+    document.querySelector('div[data-box-name="Product Series Title"]')?.parentElement?.remove();
+    document.querySelectorAll('img[alt="Reklama banerowa"]').forEach((el) => el?.parentElement?.parentElement?.parentElement?.remove());
+}
+
+function watchCommercialContainers() {
+    if (!document.body || typeof MutationObserver === "undefined") {
+        return;
+    }
+
+    const observer = new MutationObserver(() => removeCommercialContainers());
+    observer.observe(document.body, { childList: true, subtree: true });
 }
 
 async function restoreOldLook() {
@@ -243,6 +275,7 @@ async function restoreOldLook() {
     moveProductDescription();
     removeMovedContainers();
     removeCommercialContainers();
+    watchCommercialContainers();
     setInterval(() => removeCommercialContainers(), 1000);
 }
 
@@ -256,3 +289,6 @@ async function restoreOldLook() {
 
     restoreOldLook();
 })();
+
+
+
