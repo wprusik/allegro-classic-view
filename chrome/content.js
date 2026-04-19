@@ -231,10 +231,11 @@ function removeContainersByTitles(titles) {
 
 function removeCommercialContainers() {
     findElementByTitle('Opinie o produkcie')?.parentElement?.parentElement?.parentElement?.parentElement?.parentElement?.parentElement?.parentElement?.remove()
-    removeContainersByTitles(['Opinie o produkcie', 'Inni klienci oglądali również', 'Zbuduj swój zestaw', 'Propozycje z gwarancją najniższej ceny', 'Co powiesz na...?', 'Zamów zestaw w jednej przesyłce', 'Zamów w jednej przesyłce', 'Nowości', 'Nasze serie produktów'])
+    removeContainersByTitles(['Opinie o produkcie', 'Inni klienci oglądali również', 'Zbuduj swój zestaw', 'Propozycje z gwarancją najniższej ceny', 'Co powiesz na...?', 'Zamów zestaw w jednej przesyłce', 'Zamów w jednej przesyłce', 'Nowości', 'Nasze serie produktów', , 'Okazje cenowe dla Ciebie'])
     document.querySelectorAll('div[data-box-name="template-with-offers"]').forEach(el => el.remove())
     document.querySelector('div[data-box-name="Container carousel_reco_same_seller"]').remove();
     document.querySelector('div[data-box-name="Product Series Title"]')?.parentElement?.remove()
+    document.querySelectorAll('img[alt="Reklama banerowa"]').forEach(el => el?.parentElement?.parentElement?.parentElement?.remove())
 }
 
 async function restoreOldLook() {
