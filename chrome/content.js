@@ -72,7 +72,7 @@ function getItemData() {
     try {
         parsed = JSON.parse(rawJson);
     } catch (e) {
-        console.error("Nie udaĹ‚o siÄ™ sparsowaÄ‡ JSON-a", e);
+        console.error("Nie udało się sparsować JSON-a", e);
         return null;
     }
 
@@ -118,7 +118,7 @@ function getItemData() {
 
         if (parsed.productPopularityLabel?.label) {
             items.push({
-                name: "PopularnoĹ›Ä‡",
+                name: "Popularność",
                 value: parsed.productPopularityLabel.label,
                 description: parsed.productPopularityLabel.tooltipText || "",
                 url: ""
@@ -263,21 +263,12 @@ function removeAds() {
     if (!isItemParamsVisible()) {
         findElementByTitle('Opinie o produkcie')?.parentElement?.parentElement?.parentElement?.parentElement?.parentElement?.parentElement?.parentElement?.remove();
     }
-    removeContainersByTitles(['Opinie o produkcie', 'Inni klienci oglÄ…dali rĂłwnieĹĽ', 'Zbuduj swĂłj zestaw', 'Propozycje z gwarancjÄ… najniĹĽszej ceny', 'Co powiesz na...?', 'ZamĂłw zestaw w jednej przesyĹ‚ce', 'ZamĂłw w jednej przesyĹ‚ce', 'NowoĹ›ci', 'Nasze serie produktĂłw', 'Okazje cenowe dla Ciebie', 'Propozycje dla Ciebie']);
+    removeContainersByTitles(['Opinie o produkcie', 'Inni klienci oglądali również', 'Zbuduj swój zestaw', 'Propozycje z gwarancją najniższej ceny', 'Co powiesz na...?', 'Zamów zestaw w jednej przesyłce', 'Zamów w jednej przesyłce', 'Nowości', 'Nasze serie produktów', 'Okazje cenowe dla Ciebie', 'Propozycje dla Ciebie']);
     document.querySelectorAll('div[data-box-name="template-with-offers"]').forEach((el) => el.remove());
     document.querySelector('div[data-box-name="Container carousel_reco_same_seller"]')?.remove();
     document.querySelector('div[data-box-name="Product Series Title"]')?.parentElement?.remove();
     document.querySelectorAll('img[alt="Reklama banerowa"]').forEach((el) => el?.parentElement?.parentElement?.parentElement?.remove());
     document.querySelectorAll('div[aria-labelledby="P0-0"]').forEach(el => el?.parentElement?.remove())
-}
-
-function watchCommercialContainers() {
-    if (!document.body || typeof MutationObserver === "undefined") {
-        return;
-    }
-
-    const observer = new MutationObserver(() => removeAds());
-    observer.observe(document.body, { childList: true, subtree: true });
 }
 
 async function restoreOldLook() {
@@ -287,12 +278,11 @@ async function restoreOldLook() {
         removeMovedContainers();
     }
     removeAds();
-    watchCommercialContainers();
     setInterval(() => removeAds(), 1000);
 }
 
 function isOutdatedItemPage() {
-    return [...document.querySelectorAll('h6')].filter(el => el.textContent === 'SprzedaĹĽ zakoĹ„czona').length > 0
+    return [...document.querySelectorAll('h6')].filter(el => el.textContent === 'Sprzedaż zakończona').length > 0
 }
 
 function isItemParamsVisible() {
