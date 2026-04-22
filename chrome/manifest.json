@@ -36,6 +36,25 @@
         "content.js"
       ],
       "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://allegro.pl/koszyk"
+      ],
+      "js": [
+        "cart-content.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://allegro.pl/moje-allegro/zakupy/obserwowane/ulubione"
+      ],
+      "js": [
+        "favorites-content.js"
+      ],
+      "run_at": "document_idle"
     }
   ]
 }
+

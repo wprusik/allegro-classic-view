@@ -12,36 +12,124 @@ const ICONS_DISABLED = {
     128: "icons/icon-gray-128.png"
 };
 
-function isTargetUrl(url) {
-    if (!url) return false;
+const DEFAULT_SETTINGS = {
+    product: true,
+    cart: true,
+    favorites: true
+};
+
+const DEFAULT_GLOBAL_ENABLED = true;
+
+function getPageKeyFromPath(pathname) {
+    if (pathname.startsWith("/produkt/") || pathname.startsWith("/oferta/")) {
+        return "product";
+    }
+    if (pathname === "/koszyk") {
+        return "cart";
+    }
+    if (pathname === "/moje-allegro/zakupy/obserwowane/ulubione") {
+        return "favorites";
+    }
+    return null;
+}
+
+function getPageKeyFromUrl(url) {
+    if (!url) return null;
     try {
         const parsed = new URL(url);
-        return parsed.hostname === "allegro.pl" && (parsed.pathname.startsWith("/produkt/") || parsed.pathname.startsWith("/oferta/"));
+        if (parsed.hostname !== "allegro.pl") {
+            return null;
+        }
+        return getPageKeyFromPath(parsed.pathname);
     } catch (_) {
-        return false;
+        return null;
     }
 }
 
-function getEnabledState() {
+function isTargetUrl(url) {
+    return getPageKeyFromUrl(url) !== null;
+}
+
+function normalizeSettings(raw) {
+    return {
+        product: raw?.product !== false,
+        cart: raw?.cart !== false,
+        favorites: raw?.favorites !== false
+    };
+}
+
+function getSettings() {
     if (typeof browser !== "undefined" && browser?.storage?.local) {
-        return browser.storage.local.get("enabled")
-            .then((result) => result.enabled !== false)
-            .catch(() => true);
+        return browser.storage.local.get(["pageSettings", "enabled"])
+            .then((result) => {
+                if (result?.pageSettings) {
+                    return normalizeSettings(result.pageSettings);
+                }
+                if (result?.enabled === false) {
+                    return { product: false, cart: false, favorites: false };
+                }
+                return { ...DEFAULT_SETTINGS };
+            })
+            .catch(() => ({ ...DEFAULT_SETTINGS }));
     }
+
     return new Promise((resolve) => {
-        chrome.storage.local.get("enabled", (result) => {
+        chrome.storage.local.get(["pageSettings", "enabled"], (result) => {
+            if (result?.pageSettings) {
+                resolve(normalizeSettings(result.pageSettings));
+                return;
+            }
+            if (result?.enabled === false) {
+                resolve({ product: false, cart: false, favorites: false });
+                return;
+            }
+            resolve({ ...DEFAULT_SETTINGS });
+        });
+    });
+}
+
+function setSettings(settings) {
+    const normalized = normalizeSettings(settings);
+    if (typeof browser !== "undefined" && browser?.storage?.local) {
+        return browser.storage.local.set({ pageSettings: normalized });
+    }
+
+    return new Promise((resolve) => {
+        chrome.storage.local.set({ pageSettings: normalized }, () => resolve());
+    });
+}
+
+function getGlobalEnabled() {
+    if (typeof browser !== "undefined" && browser?.storage?.local) {
+        return browser.storage.local.get(["enabled"])
+            .then((result) => result?.enabled !== false)
+            .catch(() => DEFAULT_GLOBAL_ENABLED);
+    }
+
+    return new Promise((resolve) => {
+        chrome.storage.local.get(["enabled"], (result) => {
             resolve(result?.enabled !== false);
         });
     });
 }
 
-function setEnabledState(enabled) {
+function setGlobalEnabled(enabled) {
     if (typeof browser !== "undefined" && browser?.storage?.local) {
-        return browser.storage.local.set({ enabled });
+        return browser.storage.local.set({ enabled: Boolean(enabled) });
     }
+
     return new Promise((resolve) => {
-        chrome.storage.local.set({ enabled }, () => resolve());
+        chrome.storage.local.set({ enabled: Boolean(enabled) }, () => resolve());
     });
+}
+
+async function isEnabledForUrl(url) {
+    const pageKey = getPageKeyFromUrl(url);
+    if (!pageKey) return false;
+    const globalEnabled = await getGlobalEnabled();
+    if (!globalEnabled) return false;
+    const settings = await getSettings();
+    return settings[pageKey] !== false;
 }
 
 function setActionIcon(enabled, tabId) {
@@ -73,7 +161,15 @@ function setActionTitle(enabled, tabId) {
 }
 
 async function refreshIconForTab(tabId) {
-    const enabled = await getEnabledState();
+    const tabsApi = (typeof browser !== "undefined" && browser?.tabs) ? browser.tabs : chrome.tabs;
+    let tab = null;
+    if (typeof browser !== "undefined" && browser?.tabs) {
+        tab = await tabsApi.get(tabId).catch(() => null);
+    } else {
+        tab = await new Promise((resolve) => tabsApi.get(tabId, (value) => resolve(value || null)));
+    }
+
+    const enabled = await isEnabledForUrl(tab?.url);
     await setActionIcon(enabled, tabId);
     await setActionTitle(enabled, tabId);
 }
@@ -88,43 +184,93 @@ function getActiveTab() {
     });
 }
 
+function reloadTab(tabId) {
+    if (typeof browser !== "undefined" && browser?.tabs) {
+        return browser.tabs.reload(tabId);
+    }
+    return new Promise((resolve) => {
+        chrome.tabs.reload(tabId, () => resolve());
+    });
+}
+
+async function applyPageSetting(pageKey, enabled) {
+    const settings = await getSettings();
+    settings[pageKey] = enabled;
+    await setSettings(settings);
+
+    const activeTab = await getActiveTab();
+    if (activeTab?.id && getPageKeyFromUrl(activeTab.url) === pageKey) {
+        await reloadTab(activeTab.id);
+    }
+    if (activeTab?.id) {
+        await refreshIconForTab(activeTab.id);
+    }
+}
+
 async function applyEnabledState(enabled) {
-    await setEnabledState(enabled);
-    await setActionIcon(enabled);
-    await setActionTitle(enabled);
+    await setGlobalEnabled(enabled);
     const activeTab = await getActiveTab();
     if (activeTab?.id && isTargetUrl(activeTab.url)) {
-        if (typeof browser !== "undefined" && browser?.tabs) {
-            await browser.tabs.reload(activeTab.id);
-        } else {
-            chrome.tabs.reload(activeTab.id);
-        }
+        await reloadTab(activeTab.id);
+    }
+    if (activeTab?.id) {
+        await refreshIconForTab(activeTab.id);
+    } else {
+        await setActionIcon(enabled);
+        await setActionTitle(enabled);
     }
 }
 
 const runtimeApi = (typeof browser !== "undefined" && browser?.runtime) ? browser.runtime : chrome.runtime;
-const actionApi = (typeof browser !== "undefined" && browser?.action) ? browser.action : chrome.action;
 const tabsApi = (typeof browser !== "undefined" && browser?.tabs) ? browser.tabs : chrome.tabs;
 
 runtimeApi.onInstalled.addListener(async () => {
-    const enabled = await getEnabledState();
-    await setActionIcon(enabled);
-    await setActionTitle(enabled);
+    const settings = await getSettings();
+    await setSettings(settings);
+    const globalEnabled = await getGlobalEnabled();
+    await setGlobalEnabled(globalEnabled);
+    const activeTab = await getActiveTab();
+    if (activeTab?.id) {
+        await refreshIconForTab(activeTab.id);
+        return;
+    }
+    await setActionIcon(globalEnabled);
+    await setActionTitle(globalEnabled);
 });
 
 runtimeApi.onStartup?.addListener(async () => {
-    const enabled = await getEnabledState();
-    await setActionIcon(enabled);
-    await setActionTitle(enabled);
+    const activeTab = await getActiveTab();
+    if (activeTab?.id) {
+        await refreshIconForTab(activeTab.id);
+    }
 });
 
 runtimeApi.onMessage?.addListener((message, _sender, sendResponse) => {
     if (!message?.type) return;
 
+    if (message.type === "GET_SETTINGS") {
+        getSettings()
+            .then((settings) => sendResponse({ settings }))
+            .catch(() => sendResponse({ settings: { ...DEFAULT_SETTINGS } }));
+        return true;
+    }
+
+    if (message.type === "SET_PAGE_ENABLED") {
+        const pageKey = message.page;
+        if (!["product", "cart", "favorites"].includes(pageKey)) {
+            sendResponse({ ok: false, error: "INVALID_PAGE" });
+            return;
+        }
+        applyPageSetting(pageKey, Boolean(message.enabled))
+            .then(() => sendResponse({ ok: true }))
+            .catch((error) => sendResponse({ ok: false, error: String(error) }));
+        return true;
+    }
+
     if (message.type === "GET_ENABLED") {
-        getEnabledState()
+        getGlobalEnabled()
             .then((enabled) => sendResponse({ enabled }))
-            .catch(() => sendResponse({ enabled: true }));
+            .catch(() => sendResponse({ enabled: DEFAULT_GLOBAL_ENABLED }));
         return true;
     }
 
@@ -145,4 +291,3 @@ tabsApi.onUpdated?.addListener((tabId, changeInfo) => {
         refreshIconForTab(tabId);
     }
 });
-

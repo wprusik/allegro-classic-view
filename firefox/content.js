@@ -1,4 +1,4 @@
-function findElementByTagNameAndText(tagName, text) {
+﻿function findElementByTagNameAndText(tagName, text) {
     const el = [...document.getElementsByTagName(tagName)]
         .find((candidate) => candidate?.textContent?.startsWith(text));
     return el?.parentElement;
@@ -6,8 +6,13 @@ function findElementByTagNameAndText(tagName, text) {
 
 function isEnabled() {
     if (typeof browser !== "undefined" && browser?.storage?.local) {
-        return browser.storage.local.get("enabled")
-            .then((result) => result.enabled !== false)
+        return browser.storage.local.get(["pageSettings", "enabled"])
+            .then((result) => {
+                if (result?.pageSettings) {
+                    return result.enabled !== false && result.pageSettings.product !== false;
+                }
+                return result?.enabled !== false;
+            })
             .catch(() => true);
     }
 
@@ -16,7 +21,11 @@ function isEnabled() {
             resolve(true);
             return;
         }
-        chrome.storage.local.get("enabled", (result) => {
+        chrome.storage.local.get(["pageSettings", "enabled"], (result) => {
+            if (result?.pageSettings) {
+                resolve(result.enabled !== false && result.pageSettings.product !== false);
+                return;
+            }
             resolve(result?.enabled !== false);
         });
     });
@@ -63,7 +72,7 @@ function getItemData() {
     try {
         parsed = JSON.parse(rawJson);
     } catch (e) {
-        console.error("Nie udało się sparsować JSON-a", e);
+        console.error("Nie udaĹ‚o siÄ™ sparsowaÄ‡ JSON-a", e);
         return null;
     }
 
@@ -109,7 +118,7 @@ function getItemData() {
 
         if (parsed.productPopularityLabel?.label) {
             items.push({
-                name: "Popularność",
+                name: "PopularnoĹ›Ä‡",
                 value: parsed.productPopularityLabel.label,
                 description: parsed.productPopularityLabel.tooltipText || "",
                 url: ""
@@ -142,7 +151,7 @@ function getItemData() {
     const table = document.createElement("table");
     table.style.width = "100%";
     table.style.borderCollapse = "collapse";
-    table.style.fontSize = "15px";
+    table.style.fontSize = ".875rem";
     table.style.lineHeight = "1.45";
     table.style.margin = "12px 0";
     table.style.background = "#fff";
@@ -154,9 +163,9 @@ function getItemData() {
         tdName.style.border = "none";
         tdName.style.padding = "8px 10px";
         tdName.style.verticalAlign = "top";
-        tdName.style.fontWeight = "500";
+        tdName.style.fontWeight = "400";
         tdName.style.color = "#757575";
-        tdName.style.width = "20%";
+        tdName.style.width = "25%";
         tdName.style.background = rowBg;
 
 
@@ -165,7 +174,7 @@ function getItemData() {
         tdValue.style.padding = "8px 10px";
         tdValue.style.verticalAlign = "top";
         tdValue.style.fontWeight = "400";
-        tdValue.style.width = "30%";
+        tdValue.style.width = "75%";
         tdValue.style.background = rowBg;
 
 
@@ -181,6 +190,9 @@ function getItemData() {
             a.href = item.url;
             a.target = "_blank";
             a.rel = "noopener noreferrer";
+            a.style.color = "#008673";
+            a.addEventListener("mouseenter", () => { a.style.color = "#136355"; });
+            a.addEventListener("mouseleave", () => { a.style.color = "#008673"; });
             if (item.description) a.title = item.description;
             tdValue.appendChild(a);
         } else {
@@ -198,21 +210,15 @@ function getItemData() {
         tr.appendChild(tdValue);
     };
 
-    for (let i = 0; i < items.length; i += 2) {
+    for (let i = 0; i < items.length; i += 1) {
         const tr = document.createElement("tr");
-        const rowIndex = Math.floor(i / 2);
+        const rowIndex = i;
         const rowBg = rowIndex % 2 === 0 ? "#F6F7F8" : "#fff";
         appendParamCells(tr, items[i], { rowBg });
-        const tdSpacer = document.createElement("td");
-        tdSpacer.style.width = "1%";
-        tdSpacer.style.background = "#fff";
-        tdSpacer.style.padding = "0";
-        tr.appendChild(tdSpacer);
-        appendParamCells(tr, items[i + 1], { rowBg });
         table.appendChild(tr);
     }
 
-    table.style.fontFamily = "\"Segoe UI\", \"Helvetica Neue\", Arial, sans-serif";
+    table.style.fontFamily = "\"Open Sans\", sans-serif";
     return table;
 }
 
@@ -254,8 +260,10 @@ function removeContainersByTitles(titles) {
 }
 
 function removeAds() {
-    findElementByTitle("Opinie o produkcie")?.parentElement?.parentElement?.parentElement?.parentElement?.parentElement?.parentElement?.parentElement?.remove();
-    removeContainersByTitles(['Opinie o produkcie', 'Inni klienci oglądali również', 'Zbuduj swój zestaw', 'Propozycje z gwarancją najniższej ceny', 'Co powiesz na...?', 'Zamów zestaw w jednej przesyłce', 'Zamów w jednej przesyłce', 'Nowości', 'Nasze serie produktów', 'Okazje cenowe dla Ciebie']);
+    if (!isItemParamsVisible()) {
+        findElementByTitle('Opinie o produkcie')?.parentElement?.parentElement?.parentElement?.parentElement?.parentElement?.parentElement?.parentElement?.remove();
+    }
+    removeContainersByTitles(['Opinie o produkcie', 'Inni klienci oglÄ…dali rĂłwnieĹĽ', 'Zbuduj swĂłj zestaw', 'Propozycje z gwarancjÄ… najniĹĽszej ceny', 'Co powiesz na...?', 'ZamĂłw zestaw w jednej przesyĹ‚ce', 'ZamĂłw w jednej przesyĹ‚ce', 'NowoĹ›ci', 'Nasze serie produktĂłw', 'Okazje cenowe dla Ciebie',  'Propozycje dla Ciebie']);
     document.querySelectorAll('div[data-box-name="template-with-offers"]').forEach((el) => el.remove());
     document.querySelector('div[data-box-name="Container carousel_reco_same_seller"]')?.remove();
     document.querySelector('div[data-box-name="Product Series Title"]')?.parentElement?.remove();
@@ -267,18 +275,27 @@ function watchCommercialContainers() {
     if (!document.body || typeof MutationObserver === "undefined") {
         return;
     }
-
     const observer = new MutationObserver(() => removeAds());
     observer.observe(document.body, { childList: true, subtree: true });
 }
 
 async function restoreOldLook() {
-    await moveItemParams();
-    moveProductDescription();
-    removeMovedContainers();
+    if (!isItemParamsVisible()) {
+        await moveItemParams();
+        moveProductDescription();
+        removeMovedContainers();
+    }
     removeAds();
     watchCommercialContainers();
     setInterval(() => removeAds(), 1000);
+}
+
+function isOutdatedItemPage() {
+    return [...document.querySelectorAll('h6')].filter(el => el.textContent === 'SprzedaĹĽ zakoĹ„czona').length > 0
+}
+
+function isItemParamsVisible() {
+    return document.querySelectorAll('div[data-box-name="Container Parameters Card"]').length > 0
 }
 
 (async () => {
@@ -287,11 +304,13 @@ async function restoreOldLook() {
     }
 
     const enabled = await isEnabled();
-    if (!enabled) return;
-
-    restoreOldLook();
+    if (!enabled) {
+        return;
+    }
+    if (!isOutdatedItemPage()) {
+        restoreOldLook();
+    }
 })();
-
 
 
 

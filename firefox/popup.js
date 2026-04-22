@@ -15,39 +15,70 @@ function sendMessage(message) {
     });
 }
 
-function setToggleLabel(button, enabled) {
-    button.classList.remove("toggle-on", "toggle-off");
-    button.classList.add(enabled ? "toggle-on" : "toggle-off");
-    button.textContent = enabled ? "\u26A1 Wy\u0142\u0105cz wtyczk\u0119" : "\u26A1 W\u0142\u0105cz wtyczk\u0119";
+function setDisabled(disabled) {
+    document.querySelectorAll('input[type="checkbox"], button').forEach((el) => {
+        el.disabled = disabled;
+    });
+}
+
+async function updateSetting(page, enabled) {
+    setDisabled(true);
+    try {
+        await sendMessage({ type: "SET_PAGE_ENABLED", page, enabled });
+    } finally {
+        setDisabled(false);
+    }
 }
 
 async function initPopup() {
-    const toggleBtn = document.getElementById("toggle-btn");
-    let enabled = true;
+    const product = document.getElementById("setting-product");
+    const cart = document.getElementById("setting-cart");
+    const favorites = document.getElementById("setting-favorites");
+    const toggleExtension = document.getElementById("toggle-extension");
 
+    let settings = { product: true, cart: true, favorites: true };
+    let extensionEnabled = true;
     try {
-        const response = await sendMessage({ type: "GET_ENABLED" });
-        enabled = response?.enabled !== false;
+        const [settingsResponse, enabledResponse] = await Promise.all([
+            sendMessage({ type: "GET_SETTINGS" }),
+            sendMessage({ type: "GET_ENABLED" })
+        ]);
+        settings = settingsResponse?.settings || settings;
+        extensionEnabled = enabledResponse?.enabled !== false;
     } catch (_) {
-        enabled = true;
     }
 
-    setToggleLabel(toggleBtn, enabled);
+    product.checked = settings.product !== false;
+    cart.checked = settings.cart !== false;
+    favorites.checked = settings.favorites !== false;
+    product.disabled = !extensionEnabled;
+    cart.disabled = !extensionEnabled;
+    favorites.disabled = !extensionEnabled;
+    toggleExtension.textContent = extensionEnabled ? "Wyłącz wtyczkę" : "Włącz wtyczkę";
+    toggleExtension.classList.toggle("is-disabled", !extensionEnabled);
 
-    toggleBtn.addEventListener("click", async () => {
-        toggleBtn.disabled = true;
-        const next = !enabled;
-
+    product.addEventListener("change", () => updateSetting("product", product.checked));
+    cart.addEventListener("change", () => updateSetting("cart", cart.checked));
+    favorites.addEventListener("change", () => updateSetting("favorites", favorites.checked));
+    toggleExtension.addEventListener("click", async () => {
+        setDisabled(true);
         try {
-            await sendMessage({ type: "SET_ENABLED", enabled: next });
-            enabled = next;
-            setToggleLabel(toggleBtn, enabled);
+            extensionEnabled = !extensionEnabled;
+            await sendMessage({ type: "SET_ENABLED", enabled: extensionEnabled });
+            product.disabled = !extensionEnabled;
+            cart.disabled = !extensionEnabled;
+            favorites.disabled = !extensionEnabled;
+            toggleExtension.textContent = extensionEnabled ? "Wyłącz wtyczkę" : "Włącz wtyczkę";
+            toggleExtension.classList.toggle("is-disabled", !extensionEnabled);
         } finally {
-            toggleBtn.disabled = false;
+            setDisabled(false);
+            if (!extensionEnabled) {
+                product.disabled = true;
+                cart.disabled = true;
+                favorites.disabled = true;
+            }
         }
     });
 }
 
 document.addEventListener("DOMContentLoaded", initPopup);
-
-

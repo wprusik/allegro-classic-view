@@ -7,79 +7,99 @@
     <style>
         body {
             margin: 0;
-            padding: 8px;
-            width: 180px;
+            padding: 10px;
+            width: 220px;
             font-family: "Segoe UI", Arial, sans-serif;
             background: linear-gradient(145deg, #ff9f1a 0%, #ff7a00 100%);
-            color: #1f1f1f;
+            color: #2f200f;
         }
 
         .popup {
             display: grid;
-            gap: 5px;
-            padding: 0;
+            gap: 8px;
         }
 
-        button, a {
-            display: block;
-            width: 100%;
+        .card {
+            background: #fff6ed;
             border: 1px solid #ff8c00;
-            border-radius: 7px;
-            padding: 6px 8px;
+            border-radius: 8px;
+            padding: 8px;
+            display: grid;
+            gap: 6px;
+        }
+
+        .title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #5a2a00;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        input[type="checkbox"] {
+            width: 14px;
+            height: 14px;
+            accent-color: #ff7a00;
+            cursor: pointer;
+        }
+
+        .support {
+            display: block;
+            border: 1px solid #ff8c00;
+            border-radius: 8px;
+            padding: 7px 8px;
             font-size: 12px;
             font-weight: 600;
             text-align: center;
             text-decoration: none;
-            cursor: pointer;
-            box-sizing: border-box;
-            line-height: 1.25;
-            transition: background 0.15s ease, border-color 0.15s ease;
-        }
-
-        button {
-            background: #fff6ed;
-            color: #5a2a00;
-        }
-
-        button:hover, a:hover {
-            border-color: #ff7a00;
-            background: #ffe6cc;
-        }
-
-        button.toggle-on {
-            background: #dcfce7;
-            border-color: #22c55e;
-            color: #166534;
-        }
-
-        button.toggle-on:hover {
-            background: #bbf7d0;
-            border-color: #16a34a;
-        }
-
-        button.toggle-off {
-            background: #fee2e2;
-            border-color: #ef4444;
-            color: #991b1b;
-        }
-
-        button.toggle-off:hover {
-            background: #fecaca;
-            border-color: #dc2626;
-        }
-
-        .support {
             background: #fff1e0;
             color: #5a2a00;
+        }
+
+        #toggle-extension {
+            border: 1px solid #ff8c00;
+            border-radius: 8px;
+            padding: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            text-align: center;
+            background: #fff1e0;
+            color: #5a2a00;
+            cursor: pointer;
+        }
+
+        #toggle-extension.is-disabled {
+            background: #f5dcdc;
+            border-color: #c87474;
+            color: #6b1f1f;
+        }
+
+        #toggle-extension:disabled {
+            opacity: 0.7;
+            cursor: default;
         }
     </style>
 </head>
 <body>
 <div class="popup">
-    <button id="toggle-btn" type="button">⚙ Wczytywanie...</button>
-    <a class="support" href="https://buycoffee.to/wojtasbezportas" target="_blank" rel="noopener noreferrer">☕ Pomogło? Postaw kawę</a>
+    <button id="toggle-extension" type="button">Wyłącz wtyczkę</button>
+    <div class="card">
+        <div class="title">Działanie wtyczki</div>
+        <label><input id="setting-product" type="checkbox">Strona produktu</label>
+        <label><input id="setting-cart" type="checkbox">Koszyk</label>
+        <label><input id="setting-favorites" type="checkbox">Ulubione</label>
+    </div>
+    <a class="support" href="https://buycoffee.to/wojtasbezportas" target="_blank" rel="noopener noreferrer">Pomogło? Postaw kawę</a>
 </div>
 <script src="popup.js"></script>
 </body>
 </html>
-
