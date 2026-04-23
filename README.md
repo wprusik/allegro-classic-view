@@ -8,7 +8,7 @@ This repository contains two extension variants:
 ## Store links
 
 - Firefox (AMO): https://addons.mozilla.org/en-US/firefox/addon/allegro-clean-view
-- Chrome (Chrome Web Store): _to be added_
+- Chrome (Chrome Web Store): https://chromewebstore.google.com/detail/allegro-clean-view/bdbgeihjandpdlaekgjfhbomjfphdian
 
 ## Development - Firefox (temporary loading)
 
