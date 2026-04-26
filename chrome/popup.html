@@ -52,6 +52,42 @@
             cursor: pointer;
         }
 
+        .product-row {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .product-row label {
+            flex: 0 0 auto;
+        }
+
+        .toggle-subsettings {
+            border: none;
+            padding: 0;
+            font-size: 14px;
+            font-weight: 700;
+            line-height: 1;
+            background: transparent;
+            color: #5a2a00;
+            cursor: pointer;
+        }
+
+        .subsettings {
+            margin-left: 22px;
+            display: grid;
+            gap: 4px;
+        }
+
+        .subsettings.is-collapsed {
+            display: none;
+        }
+
+        .subsettings label {
+            font-size: 12px;
+            line-height: 1.25;
+        }
+
         .support {
             display: block;
             border: 1px solid #ff8c00;
@@ -94,7 +130,21 @@
     <button id="toggle-extension" type="button">Wyłącz wtyczkę</button>
     <div class="card">
         <div class="title">Działanie wtyczki</div>
-        <label><input id="setting-product" type="checkbox">Strona produktu</label>
+        <div class="product-row">
+            <label><input id="setting-product" type="checkbox">Strona produktu</label>
+            <button id="toggle-product-sections" class="toggle-subsettings" type="button" aria-label="Rozwiń ustawienia strony produktu" aria-expanded="false">▾</button>
+        </div>
+        <div id="product-subsettings" class="subsettings is-collapsed">
+            <label><input id="setting-product-others-also-viewed" type="checkbox">Inni klienci oglądali również</label>
+            <label><input id="setting-product-build-your-set" type="checkbox">Zbuduj swój zestaw</label>
+            <label><input id="setting-product-lowest-price-proposals" type="checkbox">Propozycje z gwarancją najniższej ceny</label>
+            <label><input id="setting-product-price-deals-for-you" type="checkbox">Okazje cenowe dla Ciebie</label>
+            <label><input id="setting-product-single-shipment-order" type="checkbox">Zamów w jednej przesyłce</label>
+            <label><input id="setting-product-single-shipment-set-order" type="checkbox">Zamów zestaw w jednej przesyłce</label>
+            <label><input id="setting-product-new-arrivals" type="checkbox">Nowości</label>
+            <label><input id="setting-product-our-product-series" type="checkbox">Nasze serie produktów</label>
+            <label><input id="setting-product-proposals-for-you" type="checkbox">Propozycje dla Ciebie</label>
+        </div>
         <label><input id="setting-cart" type="checkbox">Koszyk</label>
         <label><input id="setting-favorites" type="checkbox">Ulubione</label>
     </div>

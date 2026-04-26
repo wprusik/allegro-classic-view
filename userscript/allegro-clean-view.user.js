@@ -26,11 +26,30 @@
         pageSettings: {
             product: true,
             cart: true,
-            favorites: true
+            favorites: true,
+            productSections: {
+                othersAlsoViewed: true,
+                buildYourSet: true,
+                lowestPriceProposals: true,
+                priceDealsForYou: true,
+                singleShipmentOrder: true,
+                singleShipmentSetOrder: true,
+                newArrivals: true,
+                ourProductSeries: true,
+                proposalsForYou: true
+            }
         },
         productCleanupIntervalMs: 1000,
         favoritesCleanupIntervalMs: 1000
     };
+
+    function normalizeProductSections(raw) {
+        const defaults = CONFIG.pageSettings.productSections;
+        return Object.keys(defaults).reduce((acc, key) => {
+            acc[key] = raw?.[key] !== false;
+            return acc;
+        }, {});
+    }
 
     function wait(ms) {
         return new Promise((resolve) => setTimeout(resolve, ms));
@@ -268,30 +287,37 @@
         return document.querySelectorAll('div[data-box-name="Container Parameters Card"]').length > 0;
     }
 
-    function removeProductAds() {
+    function removeProductAds(sectionSettings) {
+        const sections = normalizeProductSections(sectionSettings);
+
         if (!isItemParamsVisible()) {
             findElementByTitle("Opinie o produkcie")
                 ?.parentElement?.parentElement?.parentElement?.parentElement
                 ?.parentElement?.parentElement?.parentElement?.remove();
         }
 
-        removeContainersByTitles([
+        const titlesToRemove = [
             "Opinie o produkcie",
-            "Inni klienci ogl\u0105dali r\u00f3wnie\u017c",
-            "Zbuduj sw\u00f3j zestaw",
-            "Propozycje z gwarancj\u0105 najni\u017cszej ceny",
-            "Co powiesz na...?",
-            "Zam\u00f3w zestaw w jednej przesy\u0142ce",
-            "Zam\u00f3w w jednej przesy\u0142ce",
-            "Nowo\u015bci",
-            "Nasze serie produkt\u00f3w",
-            "Okazje cenowe dla Ciebie",
-            "Propozycje dla Ciebie"
-        ]);
+            "Co powiesz na...?"
+        ];
+        if (sections.othersAlsoViewed) titlesToRemove.push("Inni klienci ogl\u0105dali r\u00f3wnie\u017c");
+        if (sections.buildYourSet) titlesToRemove.push("Zbuduj sw\u00f3j zestaw");
+        if (sections.lowestPriceProposals) titlesToRemove.push("Propozycje z gwarancj\u0105 najni\u017cszej ceny");
+        if (sections.singleShipmentSetOrder) titlesToRemove.push("Zam\u00f3w zestaw w jednej przesy\u0142ce");
+        if (sections.singleShipmentOrder) titlesToRemove.push("Zam\u00f3w w jednej przesy\u0142ce");
+        if (sections.newArrivals) titlesToRemove.push("Nowo\u015bci");
+        if (sections.ourProductSeries) titlesToRemove.push("Nasze serie produkt\u00f3w");
+        if (sections.priceDealsForYou) titlesToRemove.push("Okazje cenowe dla Ciebie");
+        if (sections.proposalsForYou) titlesToRemove.push("Propozycje dla Ciebie");
+        removeContainersByTitles(titlesToRemove);
 
         document.querySelectorAll('div[data-box-name="template-with-offers"]').forEach((el) => el.remove());
-        document.querySelector('div[data-box-name="Container carousel_reco_same_seller"]')?.remove();
-        document.querySelector('div[data-box-name="Product Series Title"]')?.parentElement?.remove();
+        if (sections.othersAlsoViewed) {
+            document.querySelector('div[data-box-name="Container carousel_reco_same_seller"]')?.remove();
+        }
+        if (sections.ourProductSeries) {
+            document.querySelector('div[data-box-name="Product Series Title"]')?.parentElement?.remove();
+        }
         document.querySelectorAll('img[alt="Reklama banerowa"]')
             .forEach((el) => el?.parentElement?.parentElement?.parentElement?.remove());
         document.querySelectorAll('div[aria-labelledby="P0-0"]')
@@ -304,17 +330,21 @@
     }
 
     async function runProductPage() {
-        if (CONFIG.pageSettings.product === false) return;
+        const sections = normalizeProductSections(CONFIG.pageSettings.productSections);
+        const hasEnabledSection = Object.values(sections).some(Boolean);
+        if (CONFIG.pageSettings.product === false || !hasEnabledSection) return;
         if (isOutdatedItemPage()) return;
 
         if (!isItemParamsVisible()) {
             await moveItemParams();
-            moveProductDescription();
+            if (sections.proposalsForYou) {
+                moveProductDescription();
+            }
             removeMovedContainers();
         }
 
-        removeProductAds();
-        setInterval(removeProductAds, CONFIG.productCleanupIntervalMs);
+        removeProductAds(sections);
+        setInterval(() => removeProductAds(sections), CONFIG.productCleanupIntervalMs);
         removeContainersByTitles(["Podobne oferty"]);
     }
 

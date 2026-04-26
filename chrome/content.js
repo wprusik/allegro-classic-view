@@ -4,29 +4,70 @@
     return el?.parentElement;
 }
 
-function isEnabled() {
+const DEFAULT_PRODUCT_SECTIONS = {
+    othersAlsoViewed: true,
+    buildYourSet: true,
+    lowestPriceProposals: true,
+    priceDealsForYou: true,
+    singleShipmentOrder: true,
+    singleShipmentSetOrder: true,
+    newArrivals: true,
+    ourProductSeries: true,
+    proposalsForYou: true
+};
+
+function normalizeProductSections(raw) {
+    return Object.keys(DEFAULT_PRODUCT_SECTIONS).reduce((acc, key) => {
+        acc[key] = raw?.[key] !== false;
+        return acc;
+    }, {});
+}
+
+function getProductConfig() {
     if (typeof browser !== "undefined" && browser?.storage?.local) {
         return browser.storage.local.get(["pageSettings", "enabled"])
             .then((result) => {
+                const sections = normalizeProductSections(result?.pageSettings?.productSections);
+                const productEnabled = Object.values(sections).some(Boolean);
                 if (result?.pageSettings) {
-                    return result.enabled !== false && result.pageSettings.product !== false;
+                    return {
+                        enabled: result.enabled !== false && result.pageSettings.product !== false && productEnabled,
+                        sections
+                    };
                 }
-                return result?.enabled !== false;
+                return {
+                    enabled: result?.enabled !== false,
+                    sections
+                };
             })
-            .catch(() => true);
+            .catch(() => ({
+                enabled: true,
+                sections: { ...DEFAULT_PRODUCT_SECTIONS }
+            }));
     }
 
     return new Promise((resolve) => {
         if (typeof chrome === "undefined" || !chrome?.storage?.local) {
-            resolve(true);
+            resolve({
+                enabled: true,
+                sections: { ...DEFAULT_PRODUCT_SECTIONS }
+            });
             return;
         }
         chrome.storage.local.get(["pageSettings", "enabled"], (result) => {
+            const sections = normalizeProductSections(result?.pageSettings?.productSections);
+            const productEnabled = Object.values(sections).some(Boolean);
             if (result?.pageSettings) {
-                resolve(result.enabled !== false && result.pageSettings.product !== false);
+                resolve({
+                    enabled: result.enabled !== false && result.pageSettings.product !== false && productEnabled,
+                    sections
+                });
                 return;
             }
-            resolve(result?.enabled !== false);
+            resolve({
+                enabled: result?.enabled !== false,
+                sections
+            });
         });
     });
 }
@@ -261,26 +302,47 @@ function removeContainersByTitles(titles) {
     titles.forEach((title) => findElementByTitle(title)?.remove());
 }
 
-function removeAds() {
+function removeAds(sectionSettings) {
+    const sections = normalizeProductSections(sectionSettings);
+
     if (!isItemParamsVisible()) {
         findElementByTitle('Opinie o produkcie')?.parentElement?.parentElement?.parentElement?.parentElement?.parentElement?.parentElement?.parentElement?.remove();
     }
-    removeContainersByTitles(['Opinie o produkcie', 'Inni klienci oglądali również', 'Zbuduj swój zestaw', 'Propozycje z gwarancją najniższej ceny', 'Co powiesz na...?', 'Zamów zestaw w jednej przesyłce', 'Zamów w jednej przesyłce', 'Nowości', 'Nasze serie produktów', 'Okazje cenowe dla Ciebie', 'Propozycje dla Ciebie']);
+
+    const titlesToRemove = ['Opinie o produkcie', 'Co powiesz na...?'];
+    if (sections.othersAlsoViewed) titlesToRemove.push('Inni klienci oglądali również');
+    if (sections.buildYourSet) titlesToRemove.push('Zbuduj swój zestaw');
+    if (sections.lowestPriceProposals) titlesToRemove.push('Propozycje z gwarancją najniższej ceny');
+    if (sections.singleShipmentSetOrder) titlesToRemove.push('Zamów zestaw w jednej przesyłce');
+    if (sections.singleShipmentOrder) titlesToRemove.push('Zamów w jednej przesyłce');
+    if (sections.newArrivals) titlesToRemove.push('Nowości');
+    if (sections.ourProductSeries) titlesToRemove.push('Nasze serie produktów');
+    if (sections.priceDealsForYou) titlesToRemove.push('Okazje cenowe dla Ciebie');
+    if (sections.proposalsForYou) titlesToRemove.push('Propozycje dla Ciebie');
+    removeContainersByTitles(titlesToRemove);
+
     document.querySelectorAll('div[data-box-name="template-with-offers"]').forEach((el) => el.remove());
-    document.querySelector('div[data-box-name="Container carousel_reco_same_seller"]')?.remove();
-    document.querySelector('div[data-box-name="Product Series Title"]')?.parentElement?.remove();
+    if (sections.othersAlsoViewed) {
+        document.querySelector('div[data-box-name="Container carousel_reco_same_seller"]')?.remove();
+    }
+    if (sections.ourProductSeries) {
+        document.querySelector('div[data-box-name="Product Series Title"]')?.parentElement?.remove();
+    }
     document.querySelectorAll('img[alt="Reklama banerowa"]').forEach((el) => el?.parentElement?.parentElement?.parentElement?.remove());
-    document.querySelectorAll('div[aria-labelledby="P0-0"]').forEach(el => el?.parentElement?.remove())
+    document.querySelectorAll('div[aria-labelledby="P0-0"]').forEach(el => el?.parentElement?.remove());
 }
 
-async function restoreOldLook() {
+async function restoreOldLook(sectionSettings) {
+    const sections = normalizeProductSections(sectionSettings);
     if (!isItemParamsVisible()) {
         await moveItemParams();
-        moveProductDescription();
+        if (sections.proposalsForYou) {
+            moveProductDescription();
+        }
         removeMovedContainers();
     }
-    removeAds();
-    setInterval(() => removeAds(), 1000);
+    removeAds(sections);
+    setInterval(() => removeAds(sections), 1000);
     removeContainersByTitles(['Podobne oferty']);
 }
 
@@ -297,12 +359,12 @@ function isItemParamsVisible() {
         return;
     }
 
-    const enabled = await isEnabled();
-    if (!enabled) {
+    const config = await getProductConfig();
+    if (!config.enabled) {
         return;
     }
     if (!isOutdatedItemPage()) {
-        restoreOldLook();
+        restoreOldLook(config.sections);
     }
 })();
 

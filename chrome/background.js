@@ -15,7 +15,18 @@ const ICONS_DISABLED = {
 const DEFAULT_SETTINGS = {
     product: true,
     cart: true,
-    favorites: true
+    favorites: true,
+    productSections: {
+        othersAlsoViewed: true,
+        buildYourSet: true,
+        lowestPriceProposals: true,
+        priceDealsForYou: true,
+        singleShipmentOrder: true,
+        singleShipmentSetOrder: true,
+        newArrivals: true,
+        ourProductSeries: true,
+        proposalsForYou: true
+    }
 };
 
 const DEFAULT_GLOBAL_ENABLED = true;
@@ -51,11 +62,34 @@ function isTargetUrl(url) {
 }
 
 function normalizeSettings(raw) {
+    const hasStoredProductSections = raw && typeof raw.productSections === "object";
+    let productSections = normalizeProductSections(raw?.productSections);
+    if (!hasStoredProductSections && raw?.product === false) {
+        productSections = mapProductSections(false);
+    }
+    const hasAnyProductSectionEnabled = Object.values(productSections).some(Boolean);
+
     return {
-        product: raw?.product !== false,
+        product: raw?.product !== false && hasAnyProductSectionEnabled,
         cart: raw?.cart !== false,
-        favorites: raw?.favorites !== false
+        favorites: raw?.favorites !== false,
+        productSections
     };
+}
+
+function mapProductSections(value) {
+    return Object.keys(DEFAULT_SETTINGS.productSections).reduce((acc, key) => {
+        acc[key] = Boolean(value);
+        return acc;
+    }, {});
+}
+
+function normalizeProductSections(raw) {
+    const defaults = DEFAULT_SETTINGS.productSections;
+    return Object.keys(defaults).reduce((acc, key) => {
+        acc[key] = raw?.[key] !== false;
+        return acc;
+    }, {});
 }
 
 function getSettings() {
@@ -196,10 +230,29 @@ function reloadTab(tabId) {
 async function applyPageSetting(pageKey, enabled) {
     const settings = await getSettings();
     settings[pageKey] = enabled;
+    if (pageKey === "product") {
+        settings.productSections = mapProductSections(enabled);
+    }
     await setSettings(settings);
 
     const activeTab = await getActiveTab();
     if (activeTab?.id && getPageKeyFromUrl(activeTab.url) === pageKey) {
+        await reloadTab(activeTab.id);
+    }
+    if (activeTab?.id) {
+        await refreshIconForTab(activeTab.id);
+    }
+}
+
+async function applyProductSectionSetting(sectionKey, enabled) {
+    const settings = await getSettings();
+    settings.productSections = normalizeProductSections(settings.productSections);
+    settings.productSections[sectionKey] = enabled;
+    settings.product = Object.values(settings.productSections).some(Boolean);
+    await setSettings(settings);
+
+    const activeTab = await getActiveTab();
+    if (activeTab?.id && getPageKeyFromUrl(activeTab.url) === "product") {
         await reloadTab(activeTab.id);
     }
     if (activeTab?.id) {
@@ -262,6 +315,18 @@ runtimeApi.onMessage?.addListener((message, _sender, sendResponse) => {
             return;
         }
         applyPageSetting(pageKey, Boolean(message.enabled))
+            .then(() => sendResponse({ ok: true }))
+            .catch((error) => sendResponse({ ok: false, error: String(error) }));
+        return true;
+    }
+
+    if (message.type === "SET_PRODUCT_SECTION_ENABLED") {
+        const sectionKey = message.section;
+        if (!Object.prototype.hasOwnProperty.call(DEFAULT_SETTINGS.productSections, sectionKey)) {
+            sendResponse({ ok: false, error: "INVALID_SECTION" });
+            return;
+        }
+        applyProductSectionSetting(sectionKey, Boolean(message.enabled))
             .then(() => sendResponse({ ok: true }))
             .catch((error) => sendResponse({ ok: false, error: String(error) }));
         return true;
