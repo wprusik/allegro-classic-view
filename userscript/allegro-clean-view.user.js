@@ -258,6 +258,9 @@
 
     async function moveItemParams() {
         await initializeItemParams();
+        if (simplyMoveParams()) {
+            return;
+        }
         const h2 = buildHeader("Parametry");
         let table = getItemDataTable();
         if (!table) {
@@ -268,10 +271,39 @@
         findElementByTagNameAndText("span", "Sponsorowane")?.parentElement?.remove();
     }
 
-    function moveProductDescription() {
-        const el = document.querySelector('div[data-box-name="Sidebar Description"]');
-        replaceContainerContent("Propozycje dla Ciebie", [el]);
-        document.querySelector('div[data-box-name="Product Description Bar"]')?.remove();
+    function simplyMoveParams() {
+        const paramsModal = document.querySelector('div[data-box-name="Parameters Bar Container"]');
+        const paramsBar = document.querySelector('div[data-box-name="Product Parameter Bar"]');
+        const descriptionBar = document.querySelector('div[data-box-name="Product Description Bar"]');
+
+        if (paramsModal && paramsBar && descriptionBar) {
+            paramsBar.replaceChildren(paramsModal);
+            setOrderInSameParent(paramsBar, descriptionBar);
+            return true;
+        }
+        return false;
+    }
+
+    function setOrderInSameParent(el1, el2) {
+        if (!el1 || !el2) return;
+        const parent = el1.parentNode;
+        if (!parent || parent !== el2.parentNode) return;
+
+        if (el1.compareDocumentPosition(el2) & Node.DOCUMENT_POSITION_FOLLOWING) {
+            return;
+        }
+        parent.insertBefore(el1, el2);
+    }
+
+    function moveProductDescription(sections) {
+        let el = document.querySelector('div[data-box-name="Sidebar Description"]');
+        if (el && sections.proposalsForYou) {
+            replaceContainerContent("Propozycje dla Ciebie", [el]);
+            document.querySelector('div[data-box-name="Product Description Bar"]')?.remove();
+        } else {
+            el = document.querySelector('div[itemprop="description"]');
+            document.querySelector('div[data-box-name="Product Description Bar"]')?.replaceChildren(el);
+        }
     }
 
     function removeMovedContainers() {
@@ -322,6 +354,8 @@
             .forEach((el) => el?.parentElement?.parentElement?.parentElement?.remove());
         document.querySelectorAll('div[aria-labelledby="P0-0"]')
             .forEach((el) => el?.parentElement?.remove());
+        document.querySelectorAll('[data-analytics-click-label="showProductSurvey"]')
+            .forEach((el) => el.remove());
     }
 
     function isOutdatedItemPage() {
@@ -337,9 +371,7 @@
 
         if (!isItemParamsVisible()) {
             await moveItemParams();
-            if (sections.proposalsForYou) {
-                moveProductDescription();
-            }
+            moveProductDescription(sections);
             removeMovedContainers();
         }
 

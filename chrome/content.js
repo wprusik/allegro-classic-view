@@ -42,7 +42,7 @@ function getProductConfig() {
             })
             .catch(() => ({
                 enabled: true,
-                sections: { ...DEFAULT_PRODUCT_SECTIONS }
+                sections: {...DEFAULT_PRODUCT_SECTIONS}
             }));
     }
 
@@ -50,7 +50,7 @@ function getProductConfig() {
         if (typeof chrome === "undefined" || !chrome?.storage?.local) {
             resolve({
                 enabled: true,
-                sections: { ...DEFAULT_PRODUCT_SECTIONS }
+                sections: {...DEFAULT_PRODUCT_SECTIONS}
             });
             return;
         }
@@ -199,7 +199,7 @@ function getItemData() {
     table.style.background = "#fff";
 
     const appendParamCells = (tr, item, options = {}) => {
-        const { rowBg = "#fff" } = options;
+        const {rowBg = "#fff"} = options;
         const tdName = document.createElement("td");
         tdName.textContent = item?.name || "";
         tdName.style.border = "none";
@@ -233,8 +233,12 @@ function getItemData() {
             a.target = "_blank";
             a.rel = "noopener noreferrer";
             a.style.color = "#008673";
-            a.addEventListener("mouseenter", () => { a.style.color = "#136355"; });
-            a.addEventListener("mouseleave", () => { a.style.color = "#008673"; });
+            a.addEventListener("mouseenter", () => {
+                a.style.color = "#136355";
+            });
+            a.addEventListener("mouseleave", () => {
+                a.style.color = "#008673";
+            });
             if (item.description) a.title = item.description;
             tdValue.appendChild(a);
         } else {
@@ -256,7 +260,7 @@ function getItemData() {
         const tr = document.createElement("tr");
         const rowIndex = i;
         const rowBg = rowIndex % 2 === 0 ? "#F6F7F8" : "#fff";
-        appendParamCells(tr, items[i], { rowBg });
+        appendParamCells(tr, items[i], {rowBg});
         table.appendChild(tr);
     }
 
@@ -275,6 +279,10 @@ function buildHeader(text) {
 
 async function moveItemParams() {
     await initializeItemParams();
+
+    if (simplyMoveParams()) {
+        return;
+    }
     const h2 = buildHeader("Parametry");
     let table = getItemData();
     if (!table) {
@@ -287,10 +295,39 @@ async function moveItemParams() {
     findElementByTagNameAndText("span", "Sponsorowane")?.parentElement?.remove();
 }
 
-function moveProductDescription() {
-    const el = document.querySelector('div[data-box-name="Sidebar Description"]');
-    replaceContainerContent("Propozycje dla Ciebie", [el]);
-    document.querySelector('div[data-box-name="Product Description Bar"]')?.remove();
+function simplyMoveParams() {
+    let paramsModal = document.querySelector('div[data-box-name="Parameters Bar Container"]')
+    let paramsBar = document.querySelector('div[data-box-name="Product Parameter Bar"]')
+    let descriptionBar = document.querySelector('div[data-box-name="Product Description Bar"]')
+
+    if (paramsModal && paramsBar && descriptionBar) {
+        paramsBar.replaceChildren(paramsModal)
+        setOrderInSameParent(paramsBar, descriptionBar)
+        return true
+    }
+    return false
+}
+
+function setOrderInSameParent(el1, el2) {
+    if (!el1 || !el2) return;
+    const parent = el1.parentNode;
+    if (!parent || parent !== el2.parentNode) return;
+
+    if (el1.compareDocumentPosition(el2) & Node.DOCUMENT_POSITION_FOLLOWING) {
+        return;
+    }
+    parent.insertBefore(el1, el2);
+}
+
+function moveProductDescription(sections) {
+    let el = document.querySelector('div[data-box-name="Sidebar Description"]');
+    if (el && sections.proposalsForYou) {
+        replaceContainerContent("Propozycje dla Ciebie", [el]);
+        document.querySelector('div[data-box-name="Product Description Bar"]')?.remove();
+    } else {
+        el = document.querySelector('div[itemprop="description"]')
+        document.querySelector('div[data-box-name="Product Description Bar"]')?.replaceChildren(el)
+    }
 }
 
 function removeMovedContainers() {
@@ -330,15 +367,14 @@ function removeAds(sectionSettings) {
     }
     document.querySelectorAll('img[alt="Reklama banerowa"]').forEach((el) => el?.parentElement?.parentElement?.parentElement?.remove());
     document.querySelectorAll('div[aria-labelledby="P0-0"]').forEach(el => el?.parentElement?.remove());
+    document.querySelectorAll('[data-analytics-click-label="showProductSurvey"]').forEach(el => el.remove())
 }
 
 async function restoreOldLook(sectionSettings) {
     const sections = normalizeProductSections(sectionSettings);
     if (!isItemParamsVisible()) {
         await moveItemParams();
-        if (sections.proposalsForYou) {
-            moveProductDescription();
-        }
+        moveProductDescription(sectionSettings);
         removeMovedContainers();
     }
     removeAds(sections);
